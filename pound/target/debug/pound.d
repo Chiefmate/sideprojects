@@ -1,1 +1,1 @@
-/home/chiefmate/projects/pound/target/debug/pound: /home/chiefmate/projects/pound/src/main.rs
+/home/chiefmate/sideprojects/pound/target/debug/pound: /home/chiefmate/sideprojects/pound/src/main.rs

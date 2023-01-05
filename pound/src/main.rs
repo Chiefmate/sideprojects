@@ -101,7 +101,7 @@ impl Output {
     }
 
     fn move_cursor(&mut self, direction: KeyCode) {
-        self.cursor_controller.move_cursor(direction, self.editor_rows.number_of_rows());
+        self.cursor_controller.move_cursor(direction, &self.editor_rows);
     }
 }
 
@@ -126,7 +126,8 @@ impl CursorController {
         }
     }
 
-    fn move_cursor(&mut self, direction: KeyCode, number_of_rows: usize) {
+    fn move_cursor(&mut self, direction: KeyCode, editor_rows: &EditorRows) {
+		let number_of_rows = editor_rows.number_of_rows();
         match direction {
             KeyCode::Up => {
                 self.cursor_y = self.cursor_y.saturating_sub(1);
@@ -134,7 +135,11 @@ impl CursorController {
             KeyCode::Left => {
                 if self.cursor_x != 0 {
                     self.cursor_x -= 1;
-                }
+                } else if self.cursor_y > 0 {
+					/* move to the end of the previous line */
+					self.cursor_y -= 1;
+					self.cursor_x = editor_rows.get_row(self.cursor_y).len();
+				}
             }
             KeyCode::Down => {
                 if self.cursor_y < number_of_rows {
@@ -142,12 +147,30 @@ impl CursorController {
                 }
             }
             KeyCode::Right => {
-				self.cursor_x += 1;
-            }
+				if self.cursor_y < number_of_rows {
+					match self.cursor_x.cmp(&editor_rows.get_row(self.cursor_y).len()) {
+						cmp::Ordering::Less => self.cursor_x += 1,
+						cmp::Ordering::Equal => {
+							/* move to the start of the next line */
+							self.cursor_y += 1;
+							self.cursor_x = 0
+						}
+						_ => {}
+					}
+				}
+			}
             KeyCode::End => self.cursor_x = self.screen_columns - 1,
             KeyCode::Home => self.cursor_x = 0,
             _ => unimplemented!(),
         }
+
+		/* snapping into the end of line when scrolling vertically*/
+		let row_len = if self.cursor_y < number_of_rows {
+			editor_rows.get_row(self.cursor_y).len()
+		} else {
+			0
+		};
+		self.cursor_x = cmp::min(self.cursor_x, row_len);
     }
 
     fn scroll(&mut self) {

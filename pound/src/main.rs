@@ -46,36 +46,36 @@ impl Output {
         for i in 0..screen_rows {
             let file_row = i + self.cursor_controller.row_offset;
             if file_row >= self.editor_rows.number_of_rows() {
-                if i >= self.editor_rows.number_of_rows() {
-                    if self.editor_rows.number_of_rows() == 0 && i == screen_rows / 3 {
-                        let mut welcome = format!("Pound Editor --- Version {}", "0.0.1");
-                        if welcome.len() > screen_columns {
-                            welcome.truncate(screen_columns)
-                        }
-                        let mut padding = (screen_columns - welcome.len()) / 2;
-                        if padding != 0 {
-                            self.editor_contents.push('~');
-                            padding -= 1
-                        }
-                        (0..padding).for_each(|_| self.editor_contents.push(' '));
-                        self.editor_contents.push_str(&welcome);
-                    } else {
-                        self.editor_contents.push('~');
+                if self.editor_rows.number_of_rows() == 0 && i == screen_rows / 3 {
+                    let mut welcome = format!("Pound Editor --- Version {}", "0.0.1");
+                    if welcome.len() > screen_columns {
+                        welcome.truncate(screen_columns)
                     }
+                    let mut padding = (screen_columns - welcome.len()) / 2;
+
+                    if padding != 0 {
+                        self.editor_contents.push('~');
+                        padding -= 1
+                    }
+
+                    (0..padding).for_each(|_| self.editor_contents.push(' '));
+                    self.editor_contents.push_str(&welcome);
                 } else {
-                    let len = cmp::min(self.editor_rows.get_row(file_row).len(), screen_columns);
-                    self.editor_contents
-                        .push_str(&self.editor_rows.get_row(file_row)[..len])
+                    self.editor_contents.push('~');
                 }
-                queue!(
-                    self.editor_contents,
-                    terminal::Clear(ClearType::UntilNewLine)
-                )
-                .unwrap();
-                if i < screen_rows - 1 {
-                    self.editor_contents.push_str("\r\n");
-                }
+            } else {
+                let len = cmp::min(self.editor_rows.get_row(file_row).len(), screen_columns);
+                self.editor_contents
+                    .push_str(&self.editor_rows.get_row(file_row)[..len])
             }
+			queue!(
+				self.editor_contents,
+				terminal::Clear(ClearType::UntilNewLine)
+			)
+			.unwrap();
+			if i < screen_rows - 1 {
+				self.editor_contents.push_str("\r\n");
+			}
         }
     }
 

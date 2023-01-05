@@ -64,9 +64,12 @@ impl Output {
                     self.editor_contents.push('~');
                 }
             } else {
-                let len = cmp::min(self.editor_rows.get_row(file_row).len(), screen_columns);
+				let row = self.editor_rows.get_row(file_row);
+				let column_offset = self.cursor_controller.column_offset;
+				let len = cmp::min(row.len().saturating_sub(column_offset), screen_columns);
+				let start = if len == 0 { 0 } else { column_offset };
                 self.editor_contents
-                    .push_str(&self.editor_rows.get_row(file_row)[..len])
+                    .push_str(&row[start..(start + len)])
             }
 			queue!(
 				self.editor_contents,
@@ -87,7 +90,7 @@ impl Output {
             cursor::MoveTo(0, 0)
         )?;
         self.draw_rows();
-        let cursor_x = self.cursor_controller.cursor_x;
+        let cursor_x = self.cursor_controller.cursor_x - self.cursor_controller.column_offset;
         let cursor_y = self.cursor_controller.cursor_y - self.cursor_controller.row_offset;
         queue!(
             self.editor_contents, 
@@ -108,6 +111,7 @@ struct CursorController {
     screen_columns: usize,
     screen_rows: usize,
     row_offset: usize,
+	column_offset: usize,
 }
 
 impl CursorController {
@@ -118,6 +122,7 @@ impl CursorController {
             screen_columns: win_size.0,
             screen_rows: win_size.1,
             row_offset: 0,
+			column_offset: 0,
         }
     }
 
@@ -137,9 +142,7 @@ impl CursorController {
                 }
             }
             KeyCode::Right => {
-                if self.cursor_x != self.screen_columns - 1 {
-                    self.cursor_x += 1;
-                }
+				self.cursor_x += 1;
             }
             KeyCode::End => self.cursor_x = self.screen_columns - 1,
             KeyCode::Home => self.cursor_x = 0,
@@ -152,6 +155,10 @@ impl CursorController {
         if self.cursor_y >= self.row_offset + self.screen_rows {
             self.row_offset = self.cursor_y - self.screen_rows + 1;
         }
+		self.column_offset = cmp::min(self.column_offset, self.cursor_x);
+		if self.cursor_x >= self.column_offset + self.screen_columns {
+			self.column_offset = self.cursor_x - self.screen_columns + 1;
+		}
     }
 }
 
